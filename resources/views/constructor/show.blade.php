@@ -17,12 +17,12 @@
 
 			@if (count($table->data))
 				<table class="table table-bordered mb-0">
-					@php $tableData = $table->data()->head()->get()->toArray(); @endphp
+					@php $tableData = $table->data()->get()->toArray(); @endphp
 
 					@for ($row = 0; $row <= getMaxRow($tableData); $row++)
 						<tr>
 							@for ($col = 0; $col <= getMaxCol($tableData); $col++)
-								<td>{{ getValue($tableData, $row, $col, 'ru') }}</td>
+								<td class="@if(isHead($tableData, $row, $col)){{ 'bg-light' }}@endif">{{ getValue($tableData, $row, $col, 'ru') }}</td>
 							@endfor
 						</tr>
 					@endfor

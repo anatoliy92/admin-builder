@@ -21,9 +21,6 @@ class CreateBuilderTableTable extends Migration
 
 				$table->boolean('good')->default(false);
 				$table->string('title')->nullable();
-				// $langs = Langs::all();
-				// foreach ($langs as $lang) { $table->boolean('good_' . $lang->key)->default(false); }
-				// foreach ($langs as $lang) { $table->string('title_' . $lang->key)->nullable(); }
 
 				$table->timestamps();
 			});

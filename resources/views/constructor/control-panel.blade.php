@@ -8,6 +8,14 @@
 	@endif
 
 	<ul class="constructor-table__panel-btns d-flex">
+
+		<li class="border-right pr-5">
+
+			<div class="d-flex ml-2">
+				<a href="#" v-bind:class="[setHeaders ? 'active' : '', 'btn btn-primary']" v-on:click="setHeaders = !setHeaders" title="Указать заголовки"><i class="fa fa-tags"></i></a>
+			</div>
+		</li>
+
 		<li class="border-right">
 			<span class="text-center">Строки</span>
 

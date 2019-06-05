@@ -32,10 +32,19 @@
 							<div class="table-responsive" id="constructor-table-table">
 								<table class="table table-bordered mb-0">
 									<tr v-for="(row, indexRow) in names">
-										<td v-for="(col, indexCol) in row" class="p-1">
-											<span v-for="(text, langKey) in col">
-												<input v-bind:class="[currentLang == langKey ? 'd-block' : 'd-none', 'form-control']" type="text" v-model="row[indexCol][langKey]" >
-											</span>
+										<td v-for="(col, indexCol) in row" v-bind:class="[row[indexCol].head ? 'bg-light' : '', 'p-1']">
+											<div class="input-group">
+												<input type="text"
+													v-for="(text, langKey) in col.translates"
+													v-bind:class="[currentLang == langKey ? 'd-block' : 'd-none', 'form-control']"
+													v-model="row[indexCol]['translates'][langKey]" >
+
+												<div v-bind:class="[setHeaders ? 'd-flex' : 'd-none', 'input-group-append']">
+													<span class="input-group-text">
+														<input type="checkbox" v-model="row[indexCol].head" >
+													</span>
+												</div>
+											</div>
 										</td>
 									</tr>
 								</table>

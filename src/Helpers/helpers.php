@@ -38,3 +38,18 @@ if (!function_exists('getValue')) {
 	}
 
 }
+
+if (!function_exists('isHead')) {
+	function isHead ($table = [], $row = 0, $col = 0)
+	{
+		$filled = Arr::where($table, function ($value, $key) use ($row, $col) {
+			if (($value['row'] == $row) && ($value['col'] == $col)) {
+				return true;
+			}
+			return false;
+		});
+
+		return head($filled)['head'] ?? false ;
+	}
+
+}

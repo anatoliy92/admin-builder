@@ -1,10 +1,11 @@
 <?php namespace Avl\AdminBuilder\Controllers\Admin;
 
-use App\Http\Controllers\Avl\AvlController;
-use App\Models\{ Langs, Sections };
-use Avl\AdminBuilder\Models\{Table, TableData};
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+	use Avl\AdminBuilder\Models\{Table, TableData};
+	use App\Http\Controllers\Avl\AvlController;
+	use App\Models\{ Langs, Sections };
+	use Illuminate\Support\Arr;
+	use Carbon\Carbon;
 
 class BuilderController extends AvlController
 {
@@ -47,7 +48,6 @@ class BuilderController extends AvlController
 				$section = Sections::findOrFail($id);
 
 				$this->authorize('update', $section);
-				// dd($request->input('names'));
 
 				$table = Table::where('section_id', $section->id)->first();
 				if (!$table) { $table = new Table(); }
@@ -77,12 +77,13 @@ class BuilderController extends AvlController
 								]);
 
 								// Проверяем, заполен ли хоть один элемент массива
-								if (true == array_filter($value, function ($v) { return $v !== null; } )) {
+								if (true == array_filter($value['translates'], function ($v) { return $v !== null; } )) {
 
 									$translates = [];
 									foreach ($this->langs as $lang) {
-										$translates['value_' . $lang->key] = $value[$lang->key];
+										$translates['value_' . $lang->key] = $value['translates'][$lang->key];
 									}
+									$translates = Arr::add($translates, 'head', ($value['head'] === "true") ? true : false);
 
 									if ($ifExist->exists()) {
 										// если такая ячека уже была, то обновляем данные в ячейке
@@ -129,7 +130,8 @@ class BuilderController extends AvlController
 					for ($row = 0; $row <= getMaxRow($tableData); $row++) {
 						for ($col = 0; $col <= getMaxCol($tableData); $col++) {
 							foreach ($this->langs as $lang) {
-								$names[$row][$col][$lang->key] = getValue($tableData, $row, $col, $lang->key);
+								$names[$row][$col]['translates'][$lang->key] = getValue($tableData, $row, $col, $lang->key);
+								$names[$row][$col]['head'] = isHead($tableData, $row, $col);
 							}
 						}
 					}

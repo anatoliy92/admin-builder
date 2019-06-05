@@ -8,6 +8,7 @@ $(document).ready(function () {
 				sectionId: 0,
 				existTable: false,
 
+				setHeaders: false,
 				selectedTemplate: 0,
 				templates: [],
 
@@ -26,9 +27,12 @@ $(document).ready(function () {
 					var self = this;
 					$.each(self.names, function (key, value) {
 						self.names[key].push({
-							'ru': '',
-							'kz': '',
-							'en': ''
+							translates: {
+								'ru': '',
+								'kz': '',
+								'en': ''
+							},
+							head: false
 						});
 					});
 				},
@@ -57,9 +61,12 @@ $(document).ready(function () {
 
 					$.each(self[0], function (key, value) {
 						addElementRows.push({
-							'ru': '',
-							'kz': '',
-							'en': ''
+							translates: {
+								'ru': '',
+								'kz': '',
+								'en': ''
+							},
+							head: false
 						});
 					});
 
@@ -112,13 +119,23 @@ $(document).ready(function () {
 				 */
 				createNewTable: function (e) {
 					e.preventDefault();
-					this.names = [];
 
-					for (row = 0; row < 2; row++) {
-						this.addRow(e);
-					}
-					for (col = 0; col < 2; col++) {
-						this.addCol(e);
+					for (var i = 0; i < 2; i++) {
+						var addElementRows = [];
+
+						for (var j = 0; j < 2; j++) {
+							addElementRows.push({
+								translates: {
+									'ru': '',
+									'kz': '',
+									'en': ''
+								},
+								head: false
+							});
+						}
+
+						this.names.push(addElementRows);
+						addElementRows = [];
 					}
 
 				},

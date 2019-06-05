@@ -1,13 +1,13 @@
 <?php namespace Avl\AdminBuilder\Controllers\Admin;
 
 use App\Http\Controllers\Avl\AvlController;
-use Avl\AdminBuilder\Models\{Table, TableData};
-use Illuminate\Http\Request;
-use App\Models\{Menu, Langs};
-use Illuminate\Support\Arr;
-use Carbon\Carbon;
-use Validator;
-use View;
+	use Avl\AdminBuilder\Models\{Table, TableData};
+	use Illuminate\Http\Request;
+	use App\Models\{Menu, Langs};
+	use Illuminate\Support\Arr;
+	use Carbon\Carbon;
+	use Validator;
+	use View;
 
 class ConstructorController extends AvlController
 {
@@ -82,12 +82,13 @@ class ConstructorController extends AvlController
 					foreach ($request->input('names') as $rowIndex => $row) {
 						foreach ($row as $colIndex => $value) {
 
-							if (true == array_filter($value, function ($v) { return $v !== null; } )) {
+							if (true == array_filter($value['translates'], function ($v) { return $v !== null; } )) {
 
 								$translates = [];
 								foreach ($this->langs as $lang) {
-									$translates['value_' . $lang->key] = $value[$lang->key];
+									$translates['value_' . $lang->key] = $value['translates'][$lang->key];
 								}
+								$translates = Arr::add($translates, 'head', ($value['head'] === "true") ? true : false);
 
 								$filled = new TableData();
 
@@ -95,7 +96,6 @@ class ConstructorController extends AvlController
 									'table_id' => $table->id,
 									'row' => $rowIndex,
 									'col' => $colIndex,
-									'head' => true,
 									'created_at' => Carbon::now(),
 									'updated_at' => Carbon::now()
 								], $translates));
@@ -161,10 +161,10 @@ class ConstructorController extends AvlController
 				if ($table->save()) {
 					$names = $request->input('names');
 
-					$tebleHeads = $table->data()->head()->get();
+					$tebleHeads = $table->data()->get();
 					foreach ($tebleHeads as $head) {
 						if (!isset($names[$head->row]) || !array_key_exists($head->col, $names[$head->row])) {
-							\DB::table('builder-table-data')->where('table_id', $table->id)->where('row', $head->row)->where('col', $head->col)->where('head', true)->delete();
+							\DB::table('builder-table-data')->where('table_id', $table->id)->where('row', $head->row)->where('col', $head->col)->delete();
 						}
 					}
 
@@ -176,17 +176,17 @@ class ConstructorController extends AvlController
 								$ifExist = TableData::where([
 									'table_id' => $table->id,
 									'row' => $rowIndex,
-									'col' => $colIndex,
-									'head' => true
+									'col' => $colIndex
 								]);
 
 								// Проверяем, заполен ли хоть один элемент массива
-								if (true == array_filter($value, function ($v) { return $v !== null; } )) {
+								if (true == array_filter($value['translates'], function ($v) { return $v !== null; } )) {
 
 									$translates = [];
 									foreach ($this->langs as $lang) {
-										$translates['value_' . $lang->key] = $value[$lang->key];
+										$translates['value_' . $lang->key] = $value['translates'][$lang->key];
 									}
+									$translates = Arr::add($translates, 'head', ($value['head'] === "true") ? true : false);
 
 									if ($ifExist->exists()) {
 										// если такая ячека уже была, то обновляем данные в ячейке
@@ -197,7 +197,6 @@ class ConstructorController extends AvlController
 											'table_id' => $table->id,
 											'row' => $rowIndex,
 											'col' => $colIndex,
-											'head' => true,
 											'created_at' => Carbon::now(),
 											'updated_at' => Carbon::now()
 										], $translates));
@@ -205,7 +204,7 @@ class ConstructorController extends AvlController
 
 								} else {
 									// Удаляем запись если ячейка пустая
-									\DB::table('builder-table-data')->where('table_id', $table->id)->where('row', $rowIndex)->where('col', $colIndex)->where('head', true)->delete();
+									\DB::table('builder-table-data')->where('table_id', $table->id)->where('row', $rowIndex)->where('col', $colIndex)->delete();
 								}
 							}
 						}
@@ -260,7 +259,8 @@ class ConstructorController extends AvlController
 					for ($row = 0; $row <= getMaxRow($tableData); $row++) {
 						for ($col = 0; $col <= getMaxCol($tableData); $col++) {
 							foreach ($this->langs as $lang) {
-								$names[$row][$col][$lang->key] = getValue($tableData, $row, $col, $lang->key);
+								$names[$row][$col]['translates'][$lang->key] = getValue($tableData, $row, $col, $lang->key);
+								$names[$row][$col]['head'] = isHead($tableData, $row, $col);
 							}
 						}
 					}

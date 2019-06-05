@@ -7,30 +7,8 @@ $(document).ready(function () {
 				currentLang: 'ru',
 				tableId: null,
 				tableName: '',
-				names: [
-					[
-						{
-							'ru': '',
-							'kz': '',
-							'en': ''
-						}, {
-							'ru': '',
-							'kz': '',
-							'en': ''
-						}
-					],
-					[
-						{
-							'ru': '',
-							'kz': '',
-							'en': ''
-						}, {
-							'ru': '',
-							'kz': '',
-							'en': ''
-						}
-					],
-				]
+				setHeaders: false,
+				names: [ ],
 			},
 
 			methods: {
@@ -45,9 +23,12 @@ $(document).ready(function () {
 					var self = this;
 					$.each(self.names, function (key, value) {
 						self.names[key].push({
-							'ru': '',
-							'kz': '',
-							'en': ''
+							translates: {
+								'ru': '',
+								'kz': '',
+								'en': ''
+							},
+							head: false
 						});
 					});
 				},
@@ -69,21 +50,24 @@ $(document).ready(function () {
 				 * Add row to end table
 				 * @param Event
 				 */
-				addRow: function (e) {
-					e.preventDefault();
-					var self = this.names;
+				addRow: function () {
+
+					var self = this;
+					var names = this.names;
 					var addElementRows = [];
 
-					$.each(self[0], function (key, value) {
+					$.each(names[0], function (key, value) {
 						addElementRows.push({
-							'ru': '',
-							'kz': '',
-							'en': ''
+							translates: {
+								'ru': '',
+								'kz': '',
+								'en': ''
+							},
+							head: false
 						});
 					});
 
-					self.push(addElementRows);
-
+					names.push(addElementRows);
 				},
 
 				/**
@@ -115,7 +99,6 @@ $(document).ready(function () {
 								names: this.names,
 							},
 							success: function(data) {
-								console.log('submited');
 								if (data.errors) {
 									messageError(data.errors);
 								} else {
@@ -182,6 +165,26 @@ $(document).ready(function () {
 								}
 							}
 					});
+				},
+
+				setDefaultNames: function () {
+					for (var i = 0; i < 2; i++) {
+						var addElementRows = [];
+
+						for (var j = 0; j < 2; j++) {
+							addElementRows.push({
+								translates: {
+									'ru': '',
+									'kz': '',
+									'en': ''
+								},
+								head: false
+							});
+						}
+
+						this.names.push(addElementRows);
+						addElementRows = [];
+					}
 				}
 
 			},
@@ -193,6 +196,11 @@ $(document).ready(function () {
 					if (this.tableId) {
 						this.getData();
 					}
+
+					if (this.names.length == 0) {
+						this.setDefaultNames();
+					}
+
 				});
 			},
 

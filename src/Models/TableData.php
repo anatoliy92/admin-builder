@@ -1,7 +1,6 @@
 <?php namespace Avl\AdminBuilder\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Avl\AdminBuilder\Models\Table;
 use App\Traits\ModelTrait;
 use LaravelLocalization;
 
@@ -21,6 +20,10 @@ class TableData extends Model
 
 		protected $lang = null;
 
+		protected $casts = [
+			'head' => 'boolean',
+		];
+
 		public function __construct ()
 		{
 			$this->lang = LaravelLocalization::getCurrentLocale();
@@ -28,7 +31,7 @@ class TableData extends Model
 
 		public function section ()
 		{
-			return $this->belongsTo(Table::class, 'table_id', 'id');
+			return $this->belongsTo('Avl\AdminBuilder\Models\Table', 'table_id', 'id');
 		}
 
 		public function scopeHead($query)
