@@ -32,7 +32,7 @@
 						@foreach ($tables as $table)
 							<tr id="table--item-{{ $table->id }}" class="position-relative">
 								<th scope="row">{{ ++$iteration }}</th>
-								<td>{{ $table->title }}</td>
+								<td>{{ $table->title_ru }}</td>
 								<td>{{ date('Y-m-d H:i', strtotime($table->created_at)) }}</td>
 								<td class="text-right">
 									<div class="btn-group" role="group">

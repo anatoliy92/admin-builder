@@ -19,7 +19,7 @@ class ConstructorController extends AvlController
 		public function __construct (Request $request) {
 			parent::__construct($request);
 
-			$this->accessModel = Menu::where('model', 'Avl\AdminBuilder\Models\Table')->firstOrFail();
+			$this->accessModel = Menu::where('model', 'Avl\AdminBuilder\Models\Table')->first();
 
 			$this->langs = Langs::all();
 
@@ -38,7 +38,7 @@ class ConstructorController extends AvlController
 			$tables = Table::default()->orderBy('created_at', 'DESC');
 
 			if ($request->ajax()) {
-				return $tables->select(['id', 'title'])->get()->toArray();
+				return $tables->select(['id', 'title_ru as title'])->get()->toArray();
 			}
 
 			return view('adminbuilder::constructor.index', [
@@ -75,7 +75,7 @@ class ConstructorController extends AvlController
 
 				$table->is_default = true;
 				$table->good = true;
-				$table->title = $request->input('tableName');
+				$table->title_ru = $request->input('tableName');
 
 				if ($table->save()) {
 
@@ -103,7 +103,7 @@ class ConstructorController extends AvlController
 						}
 					}
 					return [
-						'success' => ['Шаблон <b>'. $table->title .'</b> - сохранен!'],
+						'success' => ['Шаблон <b>'. $table->title_ru .'</b> - сохранен!'],
 						'redirect' => route('adminbuilder::constructor.index')
 					];
 				}
@@ -156,7 +156,7 @@ class ConstructorController extends AvlController
 			if (!$validator->fails()) {
 
 				$table = Table::find($id);
-				$table->title = $request->input('tableName');
+				$table->title_ru = $request->input('tableName');
 
 				if ($table->save()) {
 					$names = $request->input('names');
@@ -267,7 +267,7 @@ class ConstructorController extends AvlController
 				}
 
 				return [
-					'tableName' => $table->title,
+					'tableName' => $table->title_ru,
 					'names' => $names
 				];
 			}

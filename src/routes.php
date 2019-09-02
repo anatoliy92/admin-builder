@@ -7,7 +7,9 @@
 Route::group(['namespace' => 'Avl\AdminBuilder\Controllers\Admin', 'middleware' => ['web', 'admin'], 'as' => 'adminbuilder::'], function () {
 		Route::post('constructor/getData/{id}', 'ConstructorController@getData')->name('constructor.getData');
 		Route::resource('constructor', 'ConstructorController');
-		Route::post('sections/{id}/builder/getData', 'BuilderController@getData')->name('sections.builder.getData');
+		
+		Route::post('sections/{id}/builder/getData/{table?}', 'BuilderController@getData')->name('sections.builder.getData');
+		Route::post('sections/{id}/builder/getTables', 'BuilderController@getTables')->name('sections.builder.getTables');
 		Route::resource('sections/{id}/builder', 'BuilderController', ['as' => 'sections'])->only([ 'index', 'update' ]);
 });
 

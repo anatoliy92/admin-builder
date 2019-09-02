@@ -12,11 +12,15 @@ class BuilderController extends AvlController
 
 		protected $langs = null;
 
+		protected $section = null;
+
 		public function __construct (Request $request) {
 
 			parent::__construct($request);
 
 			$this->langs = Langs::get();
+
+			$this->section = Sections::find($request->id) ?? null;
 		}
 
 		/**
@@ -27,13 +31,11 @@ class BuilderController extends AvlController
 		 */
 		public function index($id, Request $request)
 		{
-			$section = Sections::whereId($id)->firstOrFail();
-
-			$this->authorize('view', $section);
+			$this->authorize('view', $this->section);
 
 			return view('adminbuilder::builder.index', [
 				'sectionId' => $id,
-				'existTable' => $section->table ? true : false
+				'existTable' => ($this->section->tables()->get()->count() > 0) ? true : false
 			]);
 		}
 
@@ -43,17 +45,26 @@ class BuilderController extends AvlController
 		 * @param  int  $id      Номер раздела
 		 * @return redirect to index method
 		 */
-		public function update($id, Request $request)
+		public function update(Request $request)
 		{
-				$section = Sections::findOrFail($id);
+				$this->authorize('update', $this->section);
 
-				$this->authorize('update', $section);
+				$table = Table::where('section_id', $this->section->id);
+				if (!is_null($request->builder)) {
+					$table = $table->whereId($request->builder);
+				}
+				$table = $table->first();
 
-				$table = Table::where('section_id', $section->id)->first();
 				if (!$table) { $table = new Table(); }
 
-				$table->title = $section->name_ru;
-				$table->section_id = $section->id;
+				$settings = $request->input('settings');
+
+				$table->section_id = $this->section->id;
+				$table->published_at = Carbon::parse($settings['date'] . ' ' .$settings['time'])->format('Y-m-d H:i:s');
+
+				foreach ($this->langs as $lang) {
+					$table->{'title_' . $lang->key} = $settings['title_' . $lang->key] ?? $this->section->{'name_' . $lang->key} ?? null;
+				}
 
 				if ($table->save()) {
 					$names = $request->input('names');
@@ -88,6 +99,8 @@ class BuilderController extends AvlController
 									if ($ifExist->exists()) {
 										// если такая ячека уже была, то обновляем данные в ячейке
 										$ifExist->update($translates);
+
+										$ifExist->first()->table->update(['updated_at' => Carbon::now()]);
 									} else {
 										// сохраняем данные ячейки если её не было ранее
 										$ifExist->insert(array_merge([
@@ -107,7 +120,7 @@ class BuilderController extends AvlController
 						}
 					}
 
-					return ['success' => ['Шаблон <b>'. $table->title .'</b> - сохранен!']];
+					return ['success' => ['Шаблон <b>'. $table->title_ru .'</b> - сохранен!']];
 				}
 
 				return ['errors' => ['Произошла ошибка при сохранении.']];
@@ -118,9 +131,9 @@ class BuilderController extends AvlController
 		 * @param  integer $id Номер раздела
 		 * @return array or json
 		 */
-		public function getData ($id = null)
+		public function getData (Request $request)
 		{
-			$table = Table::where('section_id', $id)->first();
+			$table = (is_null($request->table)) ? Table::where('section_id', $this->section->id)->orderBy('published_at', 'desc')->first() : Table::find($request->table);
 
 			if ($table) {
 				$names = [];
@@ -137,11 +150,29 @@ class BuilderController extends AvlController
 					}
 				}
 
+				$settings = [
+					'id' => $table->id,
+					'good' => $table->good,
+					'date' => date('Y-m-d', \strtotime($table->published_at)),
+					'time' => date('H:i', \strtotime($table->published_at))
+				];
+				foreach ($this->langs as $lang) {
+					$settings['title_' . $lang->key] = $table->{'title_' . $lang->key} ?? null;
+				}
+
 				return [
-					'names' => $names
+					'names' => $names,
+					'settings' => $settings
 				];
 			}
 
 			return ['errors' => ['Ошибка при получении данных таблицы']];
+		}
+
+		public function getTables ($id)
+		{
+			$tables = Table::where('section_id', $id)->orderBy('published_at', 'desc')->get();
+
+			return ['tables' => $tables];
 		}
 }

@@ -14,8 +14,12 @@ class Table extends Model
 
 		protected $lang = null;
 
-		public function __construct ()
+		protected $guarded = [];
+
+		public function __construct (array $attributes = array())
 		{
+			parent::__construct($attributes);
+
 			$this->lang = LaravelLocalization::getCurrentLocale();
 		}
 
@@ -32,5 +36,10 @@ class Table extends Model
 		public function scopeDefault($query)
 		{
 			return $query->where('is_default', true);
+		}
+
+		public function getEditUrl ()
+		{
+			return route('adminbuilder::sections.builder.index', ['id' => $this->section_id]);
 		}
 }

@@ -24,18 +24,27 @@ class TableData extends Model
 			'head' => 'boolean',
 		];
 
-		public function __construct ()
+		protected $touches = ['table'];
+
+		public function __construct (array $attributes = array())
 		{
+			parent::__construct($attributes);
+
 			$this->lang = LaravelLocalization::getCurrentLocale();
 		}
 
-		public function section ()
-		{
-			return $this->belongsTo('Avl\AdminBuilder\Models\Table', 'table_id', 'id');
-		}
+		// public function section ()
+		// {
+		// 	return $this->belongsTo('Avl\AdminBuilder\Models\Table', 'table_id', 'id');
+		// }
 
 		public function scopeHead($query)
 		{
 			return $query->whereHead(true);
+		}
+
+		public function table ()
+		{
+			return $this->belongsTo('Avl\AdminBuilder\Models\Table', 'table_id', 'id');
 		}
 }

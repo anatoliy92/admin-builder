@@ -3,7 +3,9 @@ $(document).ready(function () {
 		var builder = new Vue({
 			el: '#builder-table',
 			delimiters: ['@[[',']]@'],
+
 			data: {
+				showBlock: 'table',
 				currentLang: 'ru',
 				sectionId: 0,
 				existTable: false,
@@ -12,7 +14,13 @@ $(document).ready(function () {
 				selectedTemplate: 0,
 				templates: [],
 
-				names: []
+				currentTable: 0,
+				names: [],
+
+				massFilling: '',
+
+				settings: {},
+				tables: []
 			},
 
 			methods: {
@@ -94,13 +102,14 @@ $(document).ready(function () {
 
 					var self = this;
 					$.ajax({
-							url: '/sections/' + this.sectionId + '/builder/' + this.sectionId,
+							url: '/sections/' + this.sectionId + '/builder/' + this.currentTable,
 							type: 'PUT',
 							async: false,
 							dataType: 'json',
 							data : {
 								_token: $('meta[name="_token"]').attr('content'),
 								names: this.names,
+								settings: this.settings
 							},
 							success: function(data) {
 								if (data.errors) {
@@ -108,6 +117,8 @@ $(document).ready(function () {
 								} else {
 									messageSuccess(data.success);
 									self.existTable = true;
+
+									self.getTables();
 								}
 							}
 					});
@@ -140,14 +151,22 @@ $(document).ready(function () {
 
 				},
 
+				createClearTable: function (e) {
+					this.currentTable = 0;
+					this.names = [];
+					this.createNewTable(e);
+					this.settings = {};
+				},
+
 				/**
 				 * Get data for created table
 				 * @return this.names
 				 */
-				getData: function () {
+				getData: function (id) {
 					var self = this;
+
 					$.ajax({
-							url: '/sections/' + this.sectionId + '/builder/getData',
+							url: '/sections/' + this.sectionId + '/builder/getData' + (id ? '/' + id : ''),
 							type: 'POST',
 							async: false,
 							dataType: 'json',
@@ -158,10 +177,39 @@ $(document).ready(function () {
 								if (data.errors) {
 									messageError(data.errors);
 								} else {
+									self.currentTable = data.settings.id;
 									self.names = data.names;
+									self.settings = data.settings;
 								}
 							}
 					});
+				},
+
+				/**
+				 * Get all tables in section
+				 */
+				getTables: function () {
+					var self = this;
+					$.ajax({
+							url: '/sections/' + this.sectionId + '/builder/getTables',
+							type: 'POST',
+							async: false,
+							dataType: 'json',
+							data : {
+								_token: $('meta[name="_token"]').attr('content')
+							},
+							success: function(data) {
+								if (data.errors) {
+									messageError(data.errors);
+								} else {
+									self.tables = data.tables;
+								}
+							}
+					});
+				},
+
+				switchTable: function (id) {
+					this.getData(id);
 				},
 
 				/**
@@ -184,6 +232,10 @@ $(document).ready(function () {
 					});
 				},
 
+				/**
+				 * Получение списка шаблонов
+				 * @return {[array]}
+				 */
 				getTemplateData: function (e) {
 					e.preventDefault();
 
@@ -199,15 +251,76 @@ $(document).ready(function () {
 							success: function(data) {
 								if (data.errors) {
 									self.names = [];
-									// messageError(data.errors);
 								} else {
 									self.names = data.names;
 								}
 							}
 					});
 
-				}
+				},
 
+				/**
+				 * Initialize timepicker
+				 */
+				initTimePicker: function () {
+					var self = this;
+
+					$('#timepicker-tab-settings').timepicker({
+						showAnim: 'blind',
+						hourText: 'Часы',             // Define the locale text for "Hours"
+						minuteText: 'Минуты',         // Define the locale text for "Minute"
+						amPmText: ['', ''],
+						minutes: {
+							starts: 0,                // First displayed minute
+							ends: 55,                 // Last displayed minute
+							interval: 5               // Interval of displayed minutes
+						},
+						onClose: function (time) {
+							self.settings.time = time;
+						}
+					});
+				},
+
+				/**
+				 * Initialize datepicker
+				 */
+				initDatepicker: function () {
+					var self = this;
+
+					$("#datepicker-tab-settings").datepicker({
+						changeMonth: true,
+						changeYear: true,
+						dateFormat: 'yy-mm-dd',
+						yearRange: "2000:",
+						monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+						monthNamesShort: ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'],
+						dayNames: ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'],
+						dayNamesShort: ['вск','пнд','втр','срд','чтв','птн','сбт'],
+						dayNamesMin: ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'],
+						onClose: function (date) {
+							self.settings.date = date;
+						}
+					});
+				},
+
+				readMass: function () {
+					var data = this.massFilling;
+					var rows = data.split("\n");
+
+					var table = $('<table />');
+
+					for(var y in rows) {
+					    var cells = rows[y].split("\t");
+					    var row = $('<tr />');
+					    for(var x in cells) {
+					        row.append('<td>'+cells[x]+'</td>');
+					    }
+					    table.append(row);
+					}
+
+					// Insert into DOM
+					$('#excel_table').html(table);
+				}
 			},
 
 			mounted: function () {
@@ -216,6 +329,7 @@ $(document).ready(function () {
 					this.existTable = $("#exist-table").val();
 
 					this.getTemplates();
+					this.getTables();
 
 					if (this.existTable) {
 						this.getData();
@@ -224,19 +338,15 @@ $(document).ready(function () {
 			},
 
 			updated: function () {
-				// this.$nextTick(function () {
-				// 	if (this.names.length) {
-				// 		var table = $('#constructor-table-table')[0];
-				// 		var hasHorizontalScrollbar = table.scrollWidth > table.clientWidth;
-				//
-				// 		if (hasHorizontalScrollbar) {
-				// 			$('#constructor-table-table').css({'padding-bottom': '20px'});
-				// 			$('.constructor-table__btn--row').css({'bottom': '29px'});
-				// 		}
-				// 	}
-				// })
+				this.$nextTick(function () {
+
+					if (this.showBlock === 'settings') {
+						this.initTimePicker();
+
+						this.initDatepicker();
+					}
+				})
 			}
 		});
 	}
-
 });
