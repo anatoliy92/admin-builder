@@ -16,14 +16,30 @@ $(document).ready(function () {
 
 				currentTable: 0,
 				names: [],
-
-				massFilling: '',
+				heads: [],
 
 				settings: {},
-				tables: []
+				tables: [],
+
+				massFilling: '',
+				activeCell: [0, 0],   // координаты ячейки текущей ячейки
+				showPanelMass: false, // показать/скрыть панель быстрой вставки
+
+				graph: {
+					type: 'bar',
+					cols: {
+						x: [],
+						y: []
+					}
+				}
 			},
 
 			methods: {
+				setActiveCell: function (y, x) {
+					this.activeCell = [];
+					this.activeCell.push(y);
+					this.activeCell.push(x);
+				},
 
 				/**
 				 * Add col to end table
@@ -79,7 +95,6 @@ $(document).ready(function () {
 					});
 
 					self.push(addElementRows);
-
 				},
 
 				/**
@@ -109,7 +124,8 @@ $(document).ready(function () {
 							data : {
 								_token: $('meta[name="_token"]').attr('content'),
 								names: this.names,
-								settings: this.settings
+								settings: this.settings,
+								graph: this.graph
 							},
 							success: function(data) {
 								if (data.errors) {
@@ -117,6 +133,9 @@ $(document).ready(function () {
 								} else {
 									messageSuccess(data.success);
 									self.existTable = true;
+									self.currentTable = data.table.id;
+									self.heads = data.heads;
+									self.graph = data.graph;
 
 									self.getTables();
 								}
@@ -154,6 +173,7 @@ $(document).ready(function () {
 				createClearTable: function (e) {
 					this.currentTable = 0;
 					this.names = [];
+					this.heads = [];
 					this.createNewTable(e);
 					this.settings = {};
 				},
@@ -178,8 +198,10 @@ $(document).ready(function () {
 									messageError(data.errors);
 								} else {
 									self.currentTable = data.settings.id;
+									self.heads = data.heads;
 									self.names = data.names;
 									self.settings = data.settings;
+									self.graph = data.graph;
 								}
 							}
 					});
@@ -303,23 +325,121 @@ $(document).ready(function () {
 					});
 				},
 
-				readMass: function () {
-					var data = this.massFilling;
-					var rows = data.split("\n");
+				/**
+				 * Remove table and all table values
+				 */
+				removeTable: function (id) {
+					var self = this;
+					var $confirm = confirm('Вы действительно желаете удалить таблицу?');
+					if ($confirm) {
+						$.ajax({
+							url: '/sections/' + this.sectionId + '/builder/' + id,
+							type: 'DELETE',
+							async: false,
+							dataType: 'json',
+							data : {
+								_token: $('meta[name="_token"]').attr('content')
+							},
+							success: function(data) {
+								if (data.success) {
+									messageSuccess(data.success);
+									self.getTables();
+									self.currentTable = 0;
+									self.heads = [];
+									self.names = [];
+									self.settings = {};
+								}
+								if (data.errors) {
+									messageError(data.errors);
+								}
+							}
+						});
+					}
+				},
 
-					var table = $('<table />');
+				readMass: function (e) {
+					var self = this;
+					var table = getTableFromExcell(this.massFilling);
 
-					for(var y in rows) {
-					    var cells = rows[y].split("\t");
-					    var row = $('<tr />');
-					    for(var x in cells) {
-					        row.append('<td>'+cells[x]+'</td>');
-					    }
-					    table.append(row);
+					if (table.length > 0) {
+						$.each(table, function (y, row) {
+							var insertRow = self.activeCell[0] + y;
+
+							$.each(row, function (x, cell) {
+								var insertCell = self.activeCell[1] + x;
+
+								// if there is no line, then add
+								if (!self.names[insertRow]) { self.addRow(e); }
+
+								// if the row and cell exist, then fill it
+								if (self.names[insertRow] && self.names[insertRow][insertCell]) {
+									if (window.sharedData.langs) {
+										$.each(window.sharedData.langs, function (key, lang) {
+											self.names[insertRow][insertCell]['translates'][lang.key] = cell;
+										});
+									}
+								}
+							});
+						});
+					}
+					self.massFilling = '';
+					self.activeCell = [0, 0];
+				},
+
+				/**
+				 * Очищаем график
+				 */
+				clearGraph: function () {
+					this.graph = {
+						type: line,
+						cols: {
+							x: [],
+							y: []
+						}
+					};
+				},
+
+				checkExistCoordinate (axis, x, y) {
+					var index = -1;
+
+					if (Array.isArray(axis[0])) {
+						$.each(axis, function (key, value) {
+							if ((value[0] == x) && (value[1] == y)) {
+								index = key;
+							}
+						});
+					} else {
+						if ((axis[0] == x) && (axis[1] == y)) {
+							index = 0;
+						}
 					}
 
-					// Insert into DOM
-					$('#excel_table').html(table);
+					return index;
+				},
+
+				setXCoordinate (x, y) {
+					var grapColsX = this.graph.cols.x;
+
+					if (grapColsX.length == 0) {
+							grapColsX.push(x);
+							grapColsX.push(y);
+					} else {
+						if ((grapColsX[0] == x) && (grapColsX[1] == y)) {
+							this.graph.cols.x = [];
+						}
+					}
+				},
+
+				setYCoordinate (x, y) {
+					var graphColsY = this.graph.cols.y;
+
+					var index = this.checkExistCoordinate(graphColsY, x, y);
+
+					if (index >= 0) {
+						graphColsY.splice(index, 1);
+					} else {
+						graphColsY.push([x, y]);
+					}
 				}
 			},
 
@@ -346,7 +466,22 @@ $(document).ready(function () {
 						this.initDatepicker();
 					}
 				})
-			}
+			},
+
 		});
 	}
 });
+
+function getTableFromExcell (excelTable) {
+	var table = [],
+			data = excelTable,
+			rows = data.split("\n");
+	for(var y in rows) {
+		table[y] = [];
+		var cells = rows[y].split("\t");
+		for(var x in cells) {
+			table[y][x] = cells[x];
+		}
+	}
+	return table;
+}

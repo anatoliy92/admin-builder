@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 	use App\Models\{ Langs, Sections };
 	use Illuminate\Support\Arr;
 	use Carbon\Carbon;
+	use Cache;
 
 class BuilderController extends AvlController
 {
@@ -58,9 +59,14 @@ class BuilderController extends AvlController
 				if (!$table) { $table = new Table(); }
 
 				$settings = $request->input('settings');
+				$date = $settings['date'] ?? date('Y-m-d');
+				$time = $settings['time'] ?? date('H:i');
+				$graph = $request->input('graph');
 
 				$table->section_id = $this->section->id;
-				$table->published_at = Carbon::parse($settings['date'] . ' ' .$settings['time'])->format('Y-m-d H:i:s');
+				$table->published_at = Carbon::parse($date . ' ' . $time)->format('Y-m-d H:i:s');
+				$table->graph = isset($graph['cols']) ? $graph : null;
+				// dd($request->input('graph'));
 
 				foreach ($this->langs as $lang) {
 					$table->{'title_' . $lang->key} = $settings['title_' . $lang->key] ?? $this->section->{'name_' . $lang->key} ?? null;
@@ -120,7 +126,22 @@ class BuilderController extends AvlController
 						}
 					}
 
-					return ['success' => ['Шаблон <b>'. $table->title_ru .'</b> - сохранен!']];
+					foreach ($this->langs as $lang) {
+						Cache::forget('table-' . $lang->key . '-' . $table->id);
+					}
+
+					return [
+						'success' => ['Таблица <b>'. $table->title_ru .'</b> - сохранена!'],
+						'table' => $table,
+						'heads' => $this->getHeadsTable($table->id),
+						'graph' => $table->graph ?? [
+							'type' => 'bar',
+							'cols' => [
+								'x' => [],
+								'y' => []
+							]
+						]
+					];
 				}
 
 				return ['errors' => ['Произошла ошибка при сохранении.']];
@@ -162,11 +183,40 @@ class BuilderController extends AvlController
 
 				return [
 					'names' => $names,
-					'settings' => $settings
+					'settings' => $settings,
+					'heads' => $this->getHeadsTable($table->id),
+					'graph' => $table->graph ?? [
+						'type' => 'bar',
+						'cols' => [
+							'x' => [],
+							'y' => []
+						]
+					]
 				];
 			}
 
 			return ['errors' => ['Ошибка при получении данных таблицы']];
+		}
+
+		public function destroy (Request $request)
+		{
+			$this->authorize('delete', $this->section);
+
+			if (!is_null($request->builder)) {
+				$table = Table::find($request->builder);
+
+				if (!is_null($table)) {
+					if ($table->data->count() > 0) {
+						$table->data()->delete();
+					}
+
+					if ($table->delete()) {
+						return ['success' => ['Таблица удалена']];
+					}
+				}
+			}
+
+			return ['errors' => ['Произошла ошибка при удалении.']];
 		}
 
 		public function getTables ($id)
@@ -174,5 +224,27 @@ class BuilderController extends AvlController
 			$tables = Table::where('section_id', $id)->orderBy('published_at', 'desc')->get();
 
 			return ['tables' => $tables];
+		}
+
+		public function getHeadsTable ($id)
+		{
+			$heads = [];
+			$table = Table::find($id);
+
+			if (!is_null($table)) {
+				$tableData = $table->data()->head()->get()->toArray();
+
+				if (count($tableData)) {
+					for ($row = 0; $row <= getMaxRow($tableData); $row++) {
+						for ($col = 0; $col <= getMaxCol($tableData); $col++) {
+							foreach ($this->langs as $lang) {
+								$heads[$row][$col]['translates'][$lang->key] = getValue($tableData, $row, $col, $lang->key);
+							}
+						}
+					}
+				}
+
+			}
+			return $heads ?? [];
 		}
 }

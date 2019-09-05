@@ -3,13 +3,17 @@
 @section('css')
 	<link rel="stylesheet" href="/avl/js/jquery-ui/jquery-ui.min.css">
 	<link rel="stylesheet" href="/avl/js/jquery-ui/timepicker/jquery.ui.timepicker.css">
+	<link rel="stylesheet" href="/avl/js/Chart.js/Chart.min.css">
 @endsection
 
 @section('js')
-	<script src="/avl/js/jquery-ui/jquery-ui.min.js" charset="utf-8"></script>
+	<script src="/avl/js/jquery-ui/jquery-ui.min.js"></script>
+	<script src="/avl/js/jquery-ui/timepicker/jquery.ui.timepicker.js"></script>
+
 	<script src="/avl/js/vue.min.js"></script>
-	<script src="/avl/js/jquery-ui/timepicker/jquery.ui.timepicker.js" charset="utf-8"></script>
-	<script src="{{ asset('vendor/adminbuilder/js/builder.js') }}" charset="utf-8"></script>
+	<script src="/avl/js/Chart.js/Chart.min.js"></script>
+	<script src="{{ asset('vendor/adminbuilder/js/graph.js') }}"></script>
+	<script src="{{ asset('vendor/adminbuilder/js/builder.js') }}"></script>
 @endsection
 
 @section('main')
@@ -64,15 +68,17 @@
 
 					<div class="border p-3" style="margin: -1px 0">
 						<div class="constructor-table__table" v-if="showBlock === 'table'">
+
 							<div class="table-responsive" id="constructor-table-table">
 								<table class="table table-bordered mb-0">
 									<tr v-for="(row, indexRow) in names">
 										<td v-for="(col, indexCol) in row" v-bind:class="[row[indexCol].head ? 'bg-light' : '', 'p-1']">
 											<div class="input-group">
-												<input type="text"
+												<input type="text" class="form-control"
 													v-for="(text, langKey) in col.translates"
-													v-bind:class="[currentLang == langKey ? 'd-block' : 'd-none', 'form-control']"
-													v-model="row[indexCol]['translates'][langKey]" >
+													v-if="currentLang == langKey"
+													v-model="row[indexCol]['translates'][langKey]"
+													@focus="setActiveCell(indexRow, indexCol)">
 
 												<div v-bind:class="[setHeaders ? 'd-flex' : 'd-none', 'input-group-append']">
 													<span class="input-group-text">
@@ -84,11 +90,29 @@
 									</tr>
 								</table>
 							</div>
+
+							<div class="mt-2">
+								<span class="btn btn-block btn-square btn-light" v-on:click="showPanelMass = !showPanelMass">
+									<span>
+										<i class="fa fa-long-arrow-up" v-if="showPanelMass == true"></i>
+										<i class="fa fa-long-arrow-down" v-else></i>
+										 Показать / cкрыть панель быстрой вставки
+									 </span>
+								</span>
+								<div v-if="showPanelMass">
+									<textarea v-model="massFilling" class="form-control" rows="6"></textarea>
+									<button type="button" class="btn btn-block btn-primary btn-square" v-on:click="readMass">Заполнить</button>
+
+									<small class="form-text text-muted">* Для того чтоб заполнение началось с нужной строки/ячейки, то после вставки значений в поле выше, нужно установить курсор в нужную ячейку и нажать кнопку "Заполнить"</small>
+									<small class="form-text text-danger">** Заполнение таким способом НЕ дает стопроцентной гарантии на то что все данные встанут по своим местам</small>
+								</div>
+							</div>
+
 						</div>
 
 						<div class="block--settings" v-if="showBlock === 'settings'">
 							<div class="row">
-								<div class="col-1">
+								{{-- <div class="col-1">
 										<div class="form-group">
 											<label>Вкл / Выкл</label><br/>
 											<label class="switch switch-3d switch-primary">
@@ -97,8 +121,8 @@
 												<span class="switch-handle"></span>
 											</label>
 										</div>
-								</div>
-								<div class="col-7">
+								</div> --}}
+								<div class="col-8">
 									@if ($langs)
 										<div class="form-group">
 											{{ Form::label(null, 'Название таблицы') }}
@@ -122,22 +146,46 @@
 								</div>
 							</div>
 						</div>
+
+						<div class="block-graph" v-if="showBlock === 'graph'">
+
+							<div class="btn-group w-100 mb-3" role="group" aria-label="Basic example">
+								<button v-bind:class="[graph.type == 'line' ? 'active' : '', 'btn btn-outline-primary w-50']" @click="graph.type  = 'line'" type="button">Линейный график</button>
+								<button v-bind:class="[graph.type == 'bar' ? 'active' : '', 'btn btn-outline-success w-50']" @click="graph.type  = 'bar'" type="button">Гистограмма</button>
+							</div>
+
+							<table class="table table-bordered mb-0">
+								<tr v-for="(row, indexRow) in heads">
+									<td v-for="(col, indexCol) in row" class="p-1 bg-light">
+										<div class="input-group">
+											<span class="input-group-prepend">
+												<button type="button"
+																v-bind:class="[checkExistCoordinate(graph.cols.x, indexRow, indexCol) >= 0 ? 'active' : '', 'btn btn-outline-success']"
+																@click="setXCoordinate(indexRow, indexCol)">X</button>
+												<button type="button"
+																v-bind:class="[checkExistCoordinate(graph.cols.y, indexRow, indexCol) >= 0 ? 'active' : '', 'btn btn-outline-danger']"
+																class="btn btn-outline-danger" @click="setYCoordinate(indexRow, indexCol)">Y</button>
+											</span>
+
+											<span class="form-control" v-for="(text, langKey) in col.translates" v-if="currentLang == langKey">@[[ row[indexCol]['translates'][langKey] ]]@</span>
+										</div>
+									</td>
+								</tr>
+							</table>
+
+							<graph-component :graph="graph" :id="currentTable"></graph-component>
+
+						</div>
+
 					</div>
-
-					@include('adminbuilder::builder.control-panel')
-
 				</form>
 			</div>
 
-			{{-- <textarea v-model="massFilling" class="w-100"></textarea>
-			<button type="button" v-on:click="readMass">asdasd</button>
-
-			<div id="excel_table"></div> --}}
-
-			<hr class="">
+			<hr />
 
 			<div class="row mt-3" v-if="tables.length > 0">
 				<div class="col-12">
+					<h3>Версии</h3>
 					<table class="table table-bordered">
 						<tbody>
 							<tr :class="[table.id == currentTable ? 'bg-light' : '']" v-for="(table, index) in tables">
@@ -148,12 +196,12 @@
 								@endif
 								<td>@[[ table.title_ru ]]@</td>
 								<td width="160" class="text-center">
-									@[[ settings.date ]]@ @[[ settings.time ]]@
+									@[[ table.published_at ]]@
 								</td>
 								<td width="100" class="text-center">
 									<div class="btn-group btn-group-sm" role="group">
 										<button type="button" class="btn btn-primary" v-on:click="switchTable(table.id)"><i class="fa fa-table"></i></button>
-										<button type="button" class="btn btn-danger"><i class="fa fa-trash-o"></i></button>
+										<button type="button" class="btn btn-danger" v-on:click="removeTable(table.id)"><i class="fa fa-trash-o"></i></button>
 									</div>
 								</td>
 							</tr>
@@ -163,9 +211,7 @@
 				</div>
 			</div>
 
-			{{-- <div class="">
-				<pre>@[[ names ]]@</pre>
-			</div> --}}
+
 
 		</div>
 	</div>

@@ -16,6 +16,10 @@ class Table extends Model
 
 		protected $guarded = [];
 
+		protected $casts = [
+			'graph' => 'array'
+		];
+
 		public function __construct (array $attributes = array())
 		{
 			parent::__construct($attributes);
@@ -41,5 +45,16 @@ class Table extends Model
 		public function getEditUrl ()
 		{
 			return route('adminbuilder::sections.builder.index', ['id' => $this->section_id]);
+		}
+
+		public function getShowAttribute($value)
+		{
+			return route('site.builder.show', ['alias' => $this->section->alias, 'id' => $this->id]);
+		}
+
+		public function getTitleAttribute ($value, $lang = null) {
+			$title = (!is_null($lang)) ? $lang : $this->lang;
+
+			return ($this->{'title_' . $title}) ? $this->{'title_' . $title} : null ;
 		}
 }

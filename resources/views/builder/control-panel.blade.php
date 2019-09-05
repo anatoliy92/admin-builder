@@ -28,7 +28,7 @@
 		</li>
 
 		<li>
-			<a href="#" v-bind:class="['btn btn-warning']" title="График"><i class="fa fa-bar-chart-o"></i></a>
+			<a href="#" v-bind:class="['btn btn-warning']" v-on:click="showBlock = 'graph'" title="График"><i class="fa fa-bar-chart-o"></i></a>
 
 			<a href="#" v-if="showBlock == 'table'" v-bind:class="[setHeaders ? 'active' : '', 'btn btn-primary']" v-on:click="setHeaders = !setHeaders" title="Указать заголовки"><i class="fa fa-tags"></i></a>
 			<a href="#" v-else v-on:click="showBlock = 'table'" class="btn btn-primary" title="Показать таблицу"><i class="fa fa-table"></i></a>
