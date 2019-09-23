@@ -19,7 +19,7 @@ class CommonController extends Controller
 
 				if (!is_null($cols)) {
 					if ($cols) {
-						if ($cols['x'] && $cols['y']) {
+						if (isset($cols['x']) && isset($cols['y'])) {
 
 							$index = 0;
 							$axisX = $table->data()->whereCol($cols['x'][0])->where('row', '>', $cols['x'][1])->orderBy('row')->orderBy('col')->get();

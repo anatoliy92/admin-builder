@@ -21,6 +21,7 @@ class BuilderController extends SectionsController
 
 	public function index (Request $request)
 	{
+
 		$template = 'site.templates.builder.short.' . $this->getTemplateFileName($this->section->current_template->file_short);
 
 		$template = (View::exists($template)) ? $template : 'site.templates.builder.short.default';

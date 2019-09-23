@@ -36,7 +36,20 @@ if (!function_exists('getValue')) {
 
 		return head($filled)['value_' . $locale] ?? null ;
 	}
+}
 
+if (!function_exists('getMerge')) {
+	function getMerge ($table = [], $row = 0, $col = 0)
+	{
+		$filled = Arr::where($table, function ($value, $key) use ($row, $col) {
+			if (($value['row'] == $row) && ($value['col'] == $col)) {
+				return true;
+			}
+			return false;
+		});
+
+		return head($filled) ?? null;
+	}
 }
 
 if (!function_exists('isHead')) {

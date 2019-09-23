@@ -1,32 +1,32 @@
 {
-		"name": "avl/admin-builder",
-		"description": "Table builder module for CMS IRsite",
-		"license": "MIT",
-		"version": "1.0.2",
-		"authors": [
-				{
-						"name": "Lyos Anatoliy",
-						"email": "les.anatoliy.92@gmail.com"
-				}
-		],
-		"minimum-stability": "dev",
-		"require": {
-			"illuminate/support": "~5",
-			"laravelcollective/html": "^5.4.0"
-		},
-		"autoload": {
-			"psr-4": {
-					"Avl\\AdminBuilder\\": "src/"
-			}
-		},
-		"extra": {
-				"laravel": {
-						"providers": [
-								"Avl\\AdminBuilder\\AdminBuilderServiceProvider"
-						],
-						"aliases": {
-								"AdminBuilder": "Avl\\AdminBuilder\\AdminBuilderServiceProvider"
-						}
-				}
+	"name": "avl/admin-builder",
+	"description": "Table builder module for CMS IRsite",
+	"license": "MIT",
+	"version": "1.0.3",
+	"authors": [
+		{
+			"name": "Lyos Anatoliy",
+			"email": "les.anatoliy.92@gmail.com"
 		}
+	],
+	"minimum-stability": "dev",
+	"require": {
+		"illuminate/support": "~5",
+		"laravelcollective/html": "^5.4.0"
+	},
+	"autoload": {
+		"psr-4": {
+			"Avl\\AdminBuilder\\": "src/"
+		}
+	},
+	"extra": {
+		"laravel": {
+			"providers": [
+				"Avl\\AdminBuilder\\AdminBuilderServiceProvider"
+			],
+			"aliases": {
+				"AdminBuilder": "Avl\\AdminBuilder\\AdminBuilderServiceProvider"
+			}
+		}
+	}
 }

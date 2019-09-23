@@ -22,6 +22,7 @@ class TableData extends Model
 
 		protected $casts = [
 			'head' => 'boolean',
+			'hide' => 'boolean',
 		];
 
 		protected $touches = ['table'];

@@ -1,6 +1,11 @@
+var cols, rows, isDraggedBetweenCells = !1,
+	isMouseDown = !1,
+	mouseDownCell, selectedRowspan, selectedColspan,
+	builder = {}; // экземпляр объекта vue
+
 $(document).ready(function () {
-	if ($("#builder-table").length) {
-		var builder = new Vue({
+	// if ($("#builder-table").length) {
+		builder = new Vue({
 			el: '#builder-table',
 			delimiters: ['@[[',']]@'],
 
@@ -22,42 +27,53 @@ $(document).ready(function () {
 				tables: [],
 
 				massFilling: '',
-				activeCell: [0, 0],   // координаты ячейки текущей ячейки
+				activeCell: [0, 0],   // координаты текущей ячейки
 				showPanelMass: false, // показать/скрыть панель быстрой вставки
 
-				graph: {
-					type: 'bar',
-					cols: {
-						x: [],
-						y: []
-					}
-				}
+				selectedCells: [],
+
+				mergedCells: {},
+
+				graph: []
 			},
 
 			methods: {
+				selectCell (y, x) {
+					// если была выделена данная ячейка
+					var index = this.checkExistCoordinate(this.selectedCells, y, x);
+					if (index >= 0) {
+						this.selectedCells.splice(index, 1);
+					} else {
+						this.selectedCells.push([y, x]);
+					}
+				},
+
 				setActiveCell: function (y, x) {
 					this.activeCell = [];
 					this.activeCell.push(y);
 					this.activeCell.push(x);
+					this.mergedCells = {};
+				},
+
+				isActiveCell (y, x) {
+					if ((this.activeCell[0] === y) && (this.activeCell[1] === x)) {
+						return true;
+					}
+					return false;
 				},
 
 				/**
 				 * Add col to end table
 				 * @param Event
 				 */
-				addCol: function (e) {
+				addCol: function (indexCol, e) {
 					e.preventDefault();
-
-					var self = this;
-					$.each(self.names, function (key, value) {
-						self.names[key].push({
-							translates: {
-								'ru': '',
-								'kz': '',
-								'en': ''
-							},
-							head: false
-						});
+					$.each(this.names, function (key, value) {
+                        value.splice(indexCol, 0, {
+                            translates: { 'ru': '', 'kz': '', 'en': '' },
+                            head: false,
+							hide: 0
+                        });
 					});
 				},
 
@@ -65,12 +81,10 @@ $(document).ready(function () {
 				 * Deletion last col
 				 * @param Event
 				 */
-				delCol: function (e) {
+				delCol: function (indexCol, e) {
 					e.preventDefault();
-
-					var self = this.names;
-					$.each(self, function (key, value) {
-						self[key].pop();
+					$.each(this.names, function (key, value) {
+						value.splice(indexCol, 1);
 					});
 				},
 
@@ -78,33 +92,26 @@ $(document).ready(function () {
 				 * Add row to end table
 				 * @param Event
 				 */
-				addRow: function (e) {
+				addRow: function (indexRow, e) {
 					e.preventDefault();
-					var self = this.names;
 					var addElementRows = [];
-
-					$.each(self[0], function (key, value) {
+					$.each(this.names[0], function (key, value) {
 						addElementRows.push({
-							translates: {
-								'ru': '',
-								'kz': '',
-								'en': ''
-							},
-							head: false
+							translates: { 'ru': '', 'kz': '', 'en': '' },
+							head: false,
+							hide: 0
 						});
 					});
-
-					self.push(addElementRows);
+					this.names.splice(indexRow, 0, addElementRows);
 				},
 
 				/**
 				 * Deletion last row
 				 * @param Event
 				 */
-				delRow: function (e) {
+				delRow: function (indexRow, e) {
 					e.preventDefault();
-
-					this.names.pop();
+					this.names.splice(indexRow, 1);
 				},
 
 				/**
@@ -167,7 +174,6 @@ $(document).ready(function () {
 						this.names.push(addElementRows);
 						addElementRows = [];
 					}
-
 				},
 
 				createClearTable: function (e) {
@@ -186,24 +192,24 @@ $(document).ready(function () {
 					var self = this;
 
 					$.ajax({
-							url: '/sections/' + this.sectionId + '/builder/getData' + (id ? '/' + id : ''),
-							type: 'POST',
-							async: false,
-							dataType: 'json',
-							data : {
-								_token: $('meta[name="_token"]').attr('content')
-							},
-							success: function(data) {
-								if (data.errors) {
-									messageError(data.errors);
-								} else {
-									self.currentTable = data.settings.id;
-									self.heads = data.heads;
-									self.names = data.names;
-									self.settings = data.settings;
-									self.graph = data.graph;
-								}
-							}
+                        url: '/sections/' + this.sectionId + '/builder/getData' + (id ? '/' + id : ''),
+                        type: 'POST',
+                        async: false,
+                        dataType: 'json',
+                        data : {
+                            _token: $('meta[name="_token"]').attr('content')
+                        },
+                        success: function(data) {
+                            if (data.errors) {
+                                messageError(data.errors);
+                            } else {
+                                self.currentTable = data.settings.id;
+                                self.heads = data.heads;
+                                self.names = data.names;
+                                self.settings = data.settings;
+                                self.graph = data.graph;
+                            }
+                        }
 					});
 				},
 
@@ -386,19 +392,6 @@ $(document).ready(function () {
 					self.activeCell = [0, 0];
 				},
 
-				/**
-				 * Очищаем график
-				 */
-				clearGraph: function () {
-					this.graph = {
-						type: line,
-						cols: {
-							x: [],
-							y: []
-						}
-					};
-				},
-
 				checkExistCoordinate (axis, x, y) {
 					var index = -1;
 
@@ -440,7 +433,100 @@ $(document).ready(function () {
 					} else {
 						graphColsY.push([x, y]);
 					}
+				},
+
+                /**
+                 * Get char by iteration index
+                 * @param item
+                 * @returns char in upper
+                 */
+                getCharByCode (item) {
+				    let char = (item >= 26 ? this.getCharByCode((item / 26 >> 0) - 1) : '') +  'abcdefghijklmnopqrstuvwxyz'[item % 26 >> 0];
+				    return char.toUpperCase();
+                },
+
+                mergeCell (e) {
+                    e.preventDefault();
+					let self = this;
+
+                    if (self.mergedCells.merged) {
+						let mergedCell = self.mergedCells.merged[0];
+						let currentCell = self.names[mergedCell[0]][mergedCell[1]];
+
+						if (self.mergedCells.rowspan) {
+							for (let r = mergedCell[0]; r < (mergedCell[0] + self.mergedCells.rowspan); r++) {
+								for (let c = mergedCell[1]; c < (mergedCell[1] + self.mergedCells.colspan); c++) {
+									if (mergedCell[0] === r) {
+										if (mergedCell[1] !== c) {
+											self.names[r][c]['hide'] = 1;
+										}
+									} else {
+										self.names[r][c]['hide'] = 1;
+									}
+								}
+							}
+						}
+
+						currentCell.colspan = self.mergedCells.colspan;
+						currentCell.rowspan = self.mergedCells.rowspan;
+
+						// устанавливаем объединенную ячейку активной
+						self.activeCell = [mergedCell[0], mergedCell[1]];
+					}
+                },
+
+				isCellMerged (y, x) {
+                	if (this.mergedCells.merged) {
+						let index = this.checkExistCoordinate(this.mergedCells.merged, y, x);
+                		return index >= 0;
+					}
+                	return false;
+				},
+
+				/**
+				 * Проеряем является ли текущая выделенная ячейка объедененной
+				 * @returns boolean
+				 */
+				checkCellIsMerged () {
+					if (this.activeCell.length && this.names.length) {
+
+						let cell = this.names[this.activeCell[0]][this.activeCell[1]];
+
+						if (cell) {
+							return (cell.rowspan !== null) && (cell.colspan !== null);
+						}
+					}
+					return false;
+				},
+
+				/**
+				 * разлипляем объединенную ячейку
+				 */
+				clearMergeCell () {
+					let self = this;
+					if (self.checkCellIsMerged()) {
+						let currentCell = self.names[self.activeCell[0]][self.activeCell[1]];
+
+						for (let r = self.activeCell[0]; r < (self.activeCell[0] + currentCell.rowspan); r++) {
+							for (let c = self.activeCell[1]; c < (self.activeCell[1] + currentCell.colspan); c++) {
+								if (self.activeCell[0] === r) {
+									if (self.activeCell[1] !== c) {
+										self.names[r][c]['hide'] = 0;
+									}
+								} else {
+									self.names[r][c]['hide'] = 0;
+								}
+							}
+						}
+						currentCell.colspan = null;
+						currentCell.rowspan = null;
+					}
+				},
+
+				changeInputValue (indexRow, indexCol, langKey, e) {
+					this.names[indexRow][indexCol]['translates'][langKey] = e.target.innerHTML;
 				}
+
 			},
 
 			mounted: function () {
@@ -454,22 +540,22 @@ $(document).ready(function () {
 					if (this.existTable) {
 						this.getData();
 					}
+
+					$("#builder-table .card-body-content").removeClass('d-none');
 				});
 			},
 
 			updated: function () {
 				this.$nextTick(function () {
-
 					if (this.showBlock === 'settings') {
 						this.initTimePicker();
 
 						this.initDatepicker();
 					}
-				})
-			},
-
+				});
+			}
 		});
-	}
+	// }
 });
 
 function getTableFromExcell (excelTable) {
@@ -485,3 +571,79 @@ function getTableFromExcell (excelTable) {
 	}
 	return table;
 }
+
+// for merged cell
+
+function getCellRows(a) {
+	return getCellValue(a, "r")
+}
+
+function getCellCols(a) {
+	return getCellValue(a, "c");
+}
+
+function getCellValue(a, e) {
+	var b = $(a).attr("class");
+		b = b.split(" ");
+	let allClassesLength = b.length;
+	for (var c = 0; c < allClassesLength; c++) {
+        b[c].charAt(0) === e ? b[c] = parseInt(b[c].substr(1, b[c].length - 1), 10) : (b.splice(c, 1), allClassesLength--, c--);
+    }
+	return b;
+}
+
+function selectCells(a, e) {
+	var mCell = [];
+	for (var b = getCellCols(a), c = getCellRows(a), g = getCellCols(e), f = getCellRows(e), i = b.length, j = c.length, h = g.length, o = f.length, k = 100, l = 0, m = 100, n = 0, d = 0; d < i; d++) {
+        b[d] < k && (k = b[d]), b[d] > l && (l = b[d]);
+    }
+	for (d = 0; d < h; d++) { g[d] < k && (k = g[d]), g[d] > l && (l = g[d]); }
+	for (d = 0; d < j; d++) { c[d] < m && (m = c[d]), c[d] > n && (n = c[d]); }
+	for (d = 0; d < o; d++) { f[d] < m && (m = f[d]), f[d] > n && (n = f[d]); }
+	for (d = m; d <= n; d++) {
+        for (c = k; c <= l; c++) {
+			mCell.push([d, c]);
+        }
+    }
+	do {
+		b = !1;
+		f = $(".merge-cells");
+		i = f.length;
+		g = [];
+		c = [];
+		for (d = 0; d < i; d++) g = g.concat(getCellCols(f.eq(d))),
+			c = c.concat(getCellRows(f.eq(d)));
+		d = Math.max.apply(Math, g);
+		g = Math.min.apply(Math, g);
+		f = Math.max.apply(Math, c);
+		c = Math.min.apply(Math, c);
+		d > l && (l = d, b = !0);
+		g < k && (k = g, b = !0);
+		f > n && (n = f, b = !0);
+		c < m && (m = c, b = !0);
+
+		if (!b) {
+			selectedColspan = l - k + 1;
+			selectedRowspan = n - m + 1;
+		}
+	} while (b)
+
+	builder.mergedCells = {
+		merged: mCell,
+		colspan: selectedColspan,
+		rowspan: selectedRowspan
+	};
+	builder.activeCell = [];
+}
+
+$(function () {
+	$(document).on("mousedown", "td", function(a) {
+		1 === a.which && (isMouseDown = !0, mouseDownCell = this)
+	});
+	$(document).on("mousemove", "td", function(a) {
+		isMouseDown && mouseDownCell != this && (isDraggedBetweenCells = !0, selectCells(mouseDownCell, this))
+	});
+	$(document).on("mouseup", function() {
+		isMouseDown && (isMouseDown = !1, mouseDownCell = void 0, isDraggedBetweenCells = !1);
+	});
+});
