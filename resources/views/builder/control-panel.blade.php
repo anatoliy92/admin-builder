@@ -10,7 +10,7 @@
 
 	<ul class="constructor-table__panel-btns d-flex">
 		<li>
-			<a href="#" v-bind:class="['btn btn-light border-left']" v-on:click="showBlock = 'graph'" title="График"><i class="fa fa-bar-chart-o"></i></a>
+			<a href="#" :class="[showBlock === 'graph' ? 'active' : '', 'btn btn-light border-left']" v-on:click="showBlock = 'graph'" title="График"><i class="fa fa-bar-chart-o"></i></a>
 			<a @click="mergeCell" v-if="!checkCellIsMerged()" class="btn btn-light border-left" title="Объеденить ячейки">
 				<img src="/avl/img/icons/merge-cells.svg" width="16" height="16" style="margin-bottom: 1px">
 			</a>

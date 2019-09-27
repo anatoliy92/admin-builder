@@ -71,8 +71,8 @@ class BuilderController extends AvlController
         }
 
         if ($table->save()) {
-            $names = $request->input('names');
-//            dd($names);
+            $names = json_decode($request->input('names'));
+
             $tableHeads = $table->data()->get();
             foreach ($tableHeads as $head) {
                 if (!isset($names[$head->row]) || !array_key_exists($head->col, $names[$head->row])) {
@@ -80,9 +80,16 @@ class BuilderController extends AvlController
                 }
             }
 
-            if (!is_null($request->input('names'))) {
+            if (!is_null($settings['descriptions'])) {
+                foreach ($this->langs as $lang) {
+                    $descriptions['before_' . $lang->key] = $settings['descriptions']['before'][$lang->key];
+                    $descriptions['after_' . $lang->key] = $settings['descriptions']['after'][$lang->key];
+                }
+            }
 
-                foreach ($request->input('names') as $rowIndex => $row) {
+            if (!is_null($names)) {
+
+                foreach ($names as $rowIndex => $row) {
                     foreach ($row as $colIndex => $value) {
 
                         $ifExist = TableData::where([
@@ -92,16 +99,16 @@ class BuilderController extends AvlController
                         ]);
 
                         // Проверяем, заполен ли хоть один элемент массива
-                        if (true == array_filter($value['translates'], function ($v) { return $v !== null; } ) || ($value['hide'] == 1)) {
+                        if (true == array_filter((array) $value->translates, function ($v) { return $v !== null; } ) || ($value->hide == 1)) {
 
                             $translates = [];
                             foreach ($this->langs as $lang) {
-                                $translates['value_' . $lang->key] = ($value['hide'] == 0) ? $value['translates'][$lang->key] : null;
+                                $translates['value_' . $lang->key] = ($value->hide == 0) ? $value->{'translates'}->{$lang->key} : null;
                             }
-                            $translates = Arr::add($translates, 'head', ($value['head'] === "true") ? true : false);
-                            $translates = Arr::add($translates, 'rowspan', $value['rowspan'] ?? null);
-                            $translates = Arr::add($translates, 'colspan', $value['colspan'] ?? null);
-                            $translates = Arr::add($translates, 'hide', $value['hide'] ?? 0);
+                            $translates = Arr::add($translates, 'head', $value->head ? true : false);
+                            $translates = Arr::add($translates, 'rowspan', $value->rowspan ?? null);
+                            $translates = Arr::add($translates, 'colspan', $value->colspan ?? null);
+                            $translates = Arr::add($translates, 'hide', $value->hide ?? 0);
 
                             if ($ifExist->exists()) {
                                 // если такая ячека уже была, то обновляем данные в ячейке
@@ -114,9 +121,9 @@ class BuilderController extends AvlController
                                     'table_id' => $table->id,
                                     'row' => $rowIndex,
                                     'col' => $colIndex,
-                                    'rowspan' => $value['rowspan'] ?? null,
-                                    'colspan' => $value['colspan'] ?? null,
-                                    'hide' => $value['hide'] ?? 0,
+                                    'rowspan' => $value->rowspan ?? null,
+                                    'colspan' => $value->colspan ?? null,
+                                    'hide' => $value->hide ?? 0,
                                     'created_at' => Carbon::now(),
                                     'updated_at' => Carbon::now()
                                 ], $translates));
@@ -130,6 +137,17 @@ class BuilderController extends AvlController
                     }
                 }
             }
+
+            $table->update(array_merge(
+                $descriptions, [
+                    'config' => [
+                        'hidenRows' => json_decode($request->input('hidenRows')),
+                        'hidenCols' => json_decode($request->input('hidenCols'))
+                    ]
+                ]
+            ));
+
+            $table->refresh();
 
             foreach ($this->langs as $lang) {
                 Cache::forget('table-' . $lang->key . '-' . $table->id);
@@ -185,6 +203,10 @@ class BuilderController extends AvlController
                 'names' => $names,
                 'settings' => $this->getSettings($table),
                 'heads' => $this->getHeadsTable($table->id),
+                'config' => [
+                    'hidenRows' => $table->config['hidenRows'] ?? [],
+                    'hidenCols' => $table->config['hidenCols'] ?? [],
+                ],
                 'graph' => $table->graph ?? [
                     'type' => 'bar',
                     'cols' => [
@@ -258,6 +280,8 @@ class BuilderController extends AvlController
             ];
             foreach ($this->langs as $lang) {
                 $settings['title_' . $lang->key] = $table->{'title_' . $lang->key} ?? null;
+                $settings['descriptions']['before'][$lang->key] = $table->{'before_' . $lang->key} ?? null;
+                $settings['descriptions']['after'][$lang->key] = $table->{'after_' . $lang->key} ?? null;
             }
         }
         return $settings ?? [];

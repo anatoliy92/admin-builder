@@ -17,7 +17,8 @@ class Table extends Model
 		protected $guarded = [];
 
 		protected $casts = [
-			'graph' => 'array'
+			'graph' => 'array',
+			'config' => 'array'
 		];
 
 		public function __construct (array $attributes = array())

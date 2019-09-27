@@ -7,6 +7,7 @@
 @endsection
 
 @section('js')
+	<script src="/avl/js/tinymce/tinymce.min.js" charset="utf-8"></script>
 	<script src="/avl/js/jquery-ui/jquery-ui.min.js"></script>
 	<script src="/avl/js/jquery-ui/timepicker/jquery.ui.timepicker.js"></script>
 
@@ -67,18 +68,28 @@
 						@include('adminbuilder::builder.control-panel')
 
 						<div class="border p-3" style="margin: -1px 0">
-							<div class="constructor-table__table" v-if="showBlock === 'table'">
 
+							<div class="constructor-table__table" v-if="showBlock === 'table'">
 								<div class="table-responsive" id="constructor-table-table tableWrap">
 									<table class="table table-bordered mb-0">
 										<thead>
 											<tr style="background: #F0F0F0;">
-												<th class="p-1" style="min-width: 60px;"></th>
-												<th class="p-0" v-for="(col1, indexCol) in names[0]">
+												<th class="v-num-cells" style="min-width: 60px;">
+													<div class="dropdown">
+														<button type="button" class="btn border" @click="showAll = !showAll">
+															<i :class="['fa', showAll ? 'fa-eye' : 'fa-eye-slash']"></i>
+														</button>
+													</div>
+												</th>
+												<th class="p-0" v-for="(col1, indexCol) in names[0]" v-show="(isHide(hidenCols, indexCol) < 0) || showAll">
 													<div class="dropdown">
 														<button type="button" class="btn w-100 bg-transparent" data-toggle="dropdown">@[[ getCharByCode(indexCol)  ]]@</button>
 														<div class="dropdown-menu dropdown-menu-right">
 															<span class="dropdown-item bg-light p-1 disabled font-weight-bold text-center">Столбец</span>
+															<a class="dropdown-item p-1" href="#" @click="selectHideRowOrCol(false, indexCol, event)">
+																<span v-if="isHide(hidenCols, indexCol) >= 0"><i class="fa fa-eye ml-1 mr-1"></i> показать</span>
+																<span v-else><i class="fa fa-eye-slash ml-1 mr-1"></i> скрыть</span>
+															</a>
 															<a class="dropdown-item p-1" href="#" @click="addCol(indexCol, event)"><i class="fa fa-arrow-left ml-1 mr-1"></i>слева</a>
 															<a class="dropdown-item p-1" href="#" @click="addCol(indexCol + 1, event)"><i class="fa fa-arrow-right ml-1 mr-1"></i>справа</a>
 															<a class="dropdown-item p-1" href="#" @click="delCol(indexCol, event)"><i class="fa fa-trash-o ml-1 mr-1"></i>удалить</a>
@@ -88,12 +99,16 @@
 											</tr>
 										</thead>
 										<tbody>
-											<tr v-for="(row, indexRow) in names">
+											<tr v-for="(row, indexRow) in names" v-show="(isHide(hidenRows, indexRow) < 0) || showAll">
 												<td class="v-num-cells" width="60">
 													<div class="dropdown dropright border">
 														<button type="button" class="btn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">@[[ indexRow + 1 ]]@</button>
 														<div class="dropdown-menu dropdown-menu-right">
 															<span class="dropdown-item bg-light p-1 disabled font-weight-bold text-center">Строка</span>
+															<a class="dropdown-item p-1" href="#" @click="selectHideRowOrCol(indexRow, false, event)">
+																<span v-if="isHide(hidenRows, indexRow) >= 0"> <i class="fa fa-eye ml-1 mr-1"></i> показать</span>
+																<span v-else><i class="fa fa-eye-slash ml-1 mr-1"></i> скрыть</span>
+															</a>
 															<a class="dropdown-item p-1" href="#" @click="addRow(indexRow, event)"><i class="fa fa-arrow-up ml-1 mr-1"></i>сверху</a>
 															<a class="dropdown-item p-1" href="#" @click="addRow(indexRow + 1, event)"><i class="fa fa-arrow-down ml-1 mr-1"></i>снизу</a>
 															<a class="dropdown-item p-1" href="#" @click="delRow(indexRow, event)"><i class="fa fa-trash-o ml-1 mr-1"></i>удалить</a>
@@ -106,11 +121,13 @@
 														'p-0', 'r' + indexRow, 'c' + indexCol,
 														isActiveCell(indexRow, indexCol) ? 'active-cell' : '',
 														isCellMerged(indexRow, indexCol) ? 'merge-cells' : '',
-														col.hide == true ? 'd-none' : ''
+														col.hide == true ? 'd-none' : '',
+														((isHide(hidenCols, indexCol) >= 0) || isHide(hidenRows, indexRow) >= 0) ? 'hedden-cell' : ''
 													]"
 													:colspan="col.colspan"
 													:rowspan="col.rowspan"
 													width="160"
+													v-show="(isHide(hidenCols, indexCol) < 0) || showAll"
 												>
 													<div class="input-group">
 														<div contenteditable="true" class="form-control border-0 h-100"
@@ -133,6 +150,7 @@
 											</tr>
 										</tbody>
 									</table>
+
 								</div>
 
 								<div class="mt-2">
@@ -154,7 +172,7 @@
 
 							</div>
 
-							<div class="block--settings" v-if="showBlock === 'settings'">
+							<div class="block--settings" v-show="showBlock === 'settings'">
 								<div class="row">
 									{{-- <div class="col-1">
 											<div class="form-group">
@@ -166,6 +184,7 @@
 												</label>
 											</div>
 									</div> --}}
+
 									<div class="col-8">
 										@if ($langs)
 											<div class="form-group">
@@ -176,38 +195,44 @@
 											</div>
 										@endif
 									</div>
+
 									<div class="col-2">
 										<div class="form-group">
 											{{ Form::label(null, 'Дата публикации') }}
 											<input type="text" v-model="settings.date" class="form-control" id="datepicker-tab-settings">
 										</div>
 									</div>
+
 									<div class="col-2">
 										<div class="form-group">
 											{{ Form::label(null, 'Время публикации') }}
 											<input type="text" v-model="settings.time" class="form-control" id="timepicker-tab-settings">
 										</div>
 									</div>
+								</div>
 
+								<div class="row mt-3">
 									<div class="col-12">
-										<small>Показать при первой загрузке на сайте</small>
-										<table class="table table-bordered mb-0">
-											<tr v-for="(row, indexRow) in heads">
-												<td v-for="(col, indexCol) in row" v-bind:class="[row[indexCol].head ? 'bg-light' : '', 'p-1']">
-													<div class="input-group">
-														<span class="input-group-prepend">
-															<span class="input-group-text">
-																<input type="checkbox">
-															</span>
-														</span>
-
-														<input type="text" class="form-control" v-for="(text, langKey) in col.translates" v-if="currentLang == langKey" :value="row[indexCol]['translates'][langKey]" >
+										<ul class="nav nav-tabs" role="tablist">
+											<li class="nav-item"><a class="nav-link active show" href="#before" data-toggle="tab">Перед таблицей</a></li>
+											<li class="nav-item"><a class="nav-link" href="#after" data-toggle="tab">После таблицы</a></li>
+										</ul>
+										<div class="tab-content">
+											<div class="tab-pane active show" id="before" role="tabpanel">
+												@foreach ($langs as $lang)
+													<div :class="[('{{ $lang->key }}' == currentLang) ? 'd-block' : 'd-none']">
+														<textarea class="tmc-table-before-{{ $lang->key }}" v-model="settings.descriptions.before.{{ $lang->key  }}"></textarea>
 													</div>
-												</td>
-											</tr>
-										</table>
-
-										{{-- <pre>@[[ heads ]]@</pre> --}}
+												@endforeach
+											</div>
+											<div class="tab-pane" id="after" role="tabpanel">
+												@foreach ($langs as $lang)
+													<div :class="[('{{ $lang->key }}' == currentLang) ? 'd-block' : 'd-none']">
+														<textarea class="tmc-table-after-{{ $lang->key }}" v-model="settings.descriptions.after.{{ $lang->key  }}"></textarea>
+													</div>
+												@endforeach
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>

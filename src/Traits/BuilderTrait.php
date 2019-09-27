@@ -7,18 +7,17 @@ trait BuilderTrait
 
 	function getBodyTable ($table = null) :array
 	{
-		$return = [];
 		if (!is_null($table)) {
 			$tableData = $table->data()->get()->toArray();
 
 			if (count($tableData) > 0) {
 				for ($row = 0; $row <= getMaxRow($tableData); $row++) {
-						for ($col = 0; $col <= getMaxCol($tableData); $col++) {
-							$return[$row][$col] = [
-								'title' => getValue($tableData, $row, $col),
-								'head' => isHead($tableData, $row, $col)
-							];
-						}
+                    for ($col = 0; $col <= getMaxCol($tableData); $col++) {
+                        $return[$row][$col] = [
+                            'title' => getValue($tableData, $row, $col),
+                            'head' => isHead($tableData, $row, $col)
+                        ];
+                    }
 				}
 			}
 		}
