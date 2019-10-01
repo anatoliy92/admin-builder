@@ -391,7 +391,14 @@ $(document).ready(function () {
 								self.currentTable = 0;
 								self.heads = [];
 								self.names = [];
-								self.settings = {};
+								self.settings = {
+									descriptions: {
+										before: { kz: '', ru: '', en: '' },
+										after: { kz: '', ru: '', en: '' },
+									}
+								};
+
+								tinymce.remove('textarea');
 							}
 							if (data.errors) {
 								messageError(data.errors);
