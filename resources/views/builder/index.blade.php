@@ -237,7 +237,7 @@
 								</div>
 							</div>
 
-							<div class="block-graph" v-if="showBlock === 'graph'">
+							<div class="constructor-table__table block-graph table-responsive" v-if="showBlock === 'graph'">
 
 								<div class="btn-group w-100 mb-3" role="group" aria-label="Basic example">
 									<button v-bind:class="[graph.type == 'line' ? 'active' : '', 'btn btn-outline-primary w-50']" @click="graph.type  = 'line'" type="button">Линейный график</button>
@@ -247,7 +247,7 @@
 								</div>
 
 								<table class="table table-bordered mb-0">
-									<tr v-for="(row, indexRow) in heads">
+									<tr v-for="(row, indexRow) in heads" v-if="indexRow < 2">
 										<td v-for="(col, indexCol) in row" class="p-1 bg-light">
 											<div class="input-group">
 												<span class="input-group-prepend">
@@ -259,7 +259,7 @@
 															class="btn btn-outline-danger" @click="setYCoordinate(indexRow, indexCol)">Y</button>
 												</span>
 
-												<span class="form-control" v-for="(text, langKey) in col.translates" v-if="currentLang == langKey">@[[ row[indexCol]['translates'][langKey] ]]@</span>
+												<input type="text" class="form-control" v-for="(text, langKey) in col.translates" v-if="currentLang == langKey" :value="row[indexCol]['translates'][langKey]" disabled="">
 											</div>
 										</td>
 									</tr>

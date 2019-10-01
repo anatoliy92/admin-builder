@@ -64,7 +64,7 @@ class CommonController extends Controller
 				foreach ($axisX as $coordinatesX) {
 
 					$datasetsData = $table->data()->whereRow($coordinatesX->row)->whereCol($datasetLabel->col)->orderBy('row')->orderBy('col')->first();
-					$data[] = \preg_replace('/ /', '', $datasetsData->value_ru ?? null);
+					$data[] = \preg_replace('/ /', '', preg_replace('/,/', '.', $datasetsData->value_ru ?? null));
 
 					$backgroundColor[] = 'rgba(' . $color . ', 0.2)';
 					$borderColor[] = 'rgba(' . $color . ', 1)';

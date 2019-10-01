@@ -168,17 +168,18 @@ $(document).ready(function () {
 			createNewTable: function (e) {
 				e.preventDefault();
 
-				for (var i = 0; i < 2; i++) {
+				for (var i = 0; i < 4; i++) {
 					var addElementRows = [];
 
-					for (var j = 0; j < 2; j++) {
+					for (var j = 0; j < 4; j++) {
 						addElementRows.push({
 							translates: {
 								'ru': '',
 								'kz': '',
 								'en': ''
 							},
-							head: false
+							head: false,
+							hide: 0,
 						});
 					}
 
@@ -188,11 +189,26 @@ $(document).ready(function () {
 			},
 
 			createClearTable: function (e) {
+				let self = this;
 				this.currentTable = 0;
 				this.names = [];
 				this.heads = [];
 				this.createNewTable(e);
-				this.settings = {};
+				this.settings = {
+					descriptions: {
+						before: { kz: '', ru: '', en: '' },
+						after: { kz: '', ru: '', en: '' },
+					},
+				};
+
+				tinymce.remove('textarea');
+
+				setTimeout(function () {
+					$.each(['ru', 'kz', 'en'], function (key, index) {
+						self.tinymceInit('tmc-table-before-' + index, 'before', index);
+						self.tinymceInit('tmc-table-after-' + index, 'after', index);
+					});
+				}, 1000);
 			},
 
 			/**
