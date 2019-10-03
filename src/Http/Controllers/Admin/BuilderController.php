@@ -103,7 +103,7 @@ class BuilderController extends AvlController
 
                             $translates = [];
                             foreach ($this->langs as $lang) {
-                                $translates['value_' . $lang->key] = ($value->hide == 0) ? $value->{'translates'}->{$lang->key} : null;
+                                $translates['value_' . $lang->key] = ($value->hide == 0) ? strip_tags($value->{'translates'}->{$lang->key}) : null;
                             }
                             $translates = Arr::add($translates, 'head', $value->head ? true : false);
                             $translates = Arr::add($translates, 'rowspan', $value->rowspan ?? null);
