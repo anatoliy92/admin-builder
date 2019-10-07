@@ -18,8 +18,8 @@
 @endsection
 
 @section('main')
-	<div class="card" id="builder-table">
-		<div class="card-header">
+	<div class="card builder-table" id="builder-table">
+		<div class="card-header builder-table__header" id="builder-table-header">
 			<i class="fa fa-align-justify"></i> Конструктор
 
 			<div class="card-actions">
@@ -28,7 +28,7 @@
 			</div>
 		</div>
 
-		<div class="card-body table-responsive ">
+		<div class="card-body overflow-hidden ">
 			<div class="card-body-content d-none">
 				{{ Form::hidden(null, $sectionId, ['id' => 'section--id']) }}
 				{{ Form::hidden(null, $existTable, ['id' => 'exist-table']) }}
@@ -83,7 +83,10 @@
 												</th>
 												<th class="p-0" v-for="(col1, indexCol) in names[0]" v-show="(isHide(hidenCols, indexCol) < 0) || showAll">
 													<div class="dropdown">
-														<button type="button" class="btn w-100 bg-transparent" data-toggle="dropdown">@[[ getCharByCode(indexCol)  ]]@</button>
+														<button type="button" class="btn w-100 bg-transparent" data-toggle="dropdown">
+															@[[ getCharByCode(indexCol) ]]@
+															<sup>@[[ indexCol + 1 ]]@</sup>
+														</button>
 														<div class="dropdown-menu dropdown-menu-right">
 															<span class="dropdown-item bg-light p-1 disabled font-weight-bold text-center">Столбец</span>
 															<a class="dropdown-item p-1" href="#" @click="selectHideRowOrCol(false, indexCol, event)">
@@ -136,6 +139,7 @@
 															 v-html="row[indexCol]['translates'][langKey]"
 															 @focus="setActiveCell(indexRow, indexCol)"
 															 @focusout="changeInputValue(indexRow, indexCol, langKey, event)"
+															 @paste="clearPaste(event)"
 															 >
 														</div>
 
@@ -150,7 +154,6 @@
 											</tr>
 										</tbody>
 									</table>
-
 								</div>
 
 								<div class="mt-2">

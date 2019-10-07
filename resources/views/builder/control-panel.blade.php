@@ -1,4 +1,4 @@
-<div class="constructor-table__panel border bg-light">
+<div class="constructor-table__panel border bg-light" id="constructor-table-panel">
 	@if ($langs)
 		<div class="constructor-table__panel-langs d-flex">
 			@foreach ($langs as $lang)

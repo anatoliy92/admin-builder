@@ -2,7 +2,7 @@
 	"name": "avl/admin-builder",
 	"description": "Table builder module for CMS IRsite",
 	"license": "MIT",
-	"version": "1.0.7",
+	"version": "1.0.8",
 	"authors": [
 		{
 			"name": "Lyos Anatoliy",

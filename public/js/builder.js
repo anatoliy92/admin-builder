@@ -135,7 +135,7 @@ $(document).ready(function () {
 				$.ajax({
 						url: '/sections/' + this.sectionId + '/builder/' + this.currentTable,
 						type: 'PUT',
-						async: false,
+						async: true,
 						dataType: 'json',
 						data : {
 							_token: $('meta[name="_token"]').attr('content'),
@@ -221,7 +221,7 @@ $(document).ready(function () {
 				$.ajax({
 					url: '/sections/' + this.sectionId + '/builder/getData' + (id ? '/' + id : ''),
 					type: 'POST',
-					async: false,
+					async: true,
 					dataType: 'json',
 					data : {
 						_token: $('meta[name="_token"]').attr('content')
@@ -259,7 +259,7 @@ $(document).ready(function () {
 				$.ajax({
 						url: '/sections/' + this.sectionId + '/builder/getTables',
 						type: 'POST',
-						async: false,
+						async: true,
 						dataType: 'json',
 						data : {
 							_token: $('meta[name="_token"]').attr('content')
@@ -287,7 +287,7 @@ $(document).ready(function () {
 				$.ajax({
 						url: '/constructor',
 						type: 'GET',
-						async: false,
+						async: true,
 						dataType: 'json',
 						data : {
 							_token: $('meta[name="_token"]').attr('content')
@@ -309,7 +309,7 @@ $(document).ready(function () {
 				$.ajax({
 						url: '/constructor/getData/' + this.selectedTemplate,
 						type: 'POST',
-						async: false,
+						async: true,
 						dataType: 'json',
 						data : {
 							_token: $('meta[name="_token"]').attr('content')
@@ -357,7 +357,7 @@ $(document).ready(function () {
 					changeMonth: true,
 					changeYear: true,
 					dateFormat: 'yy-mm-dd',
-					yearRange: "2000:",
+					yearRange: '1999:c+10',
 					monthNames: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
 					monthNamesShort: ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'],
 					dayNames: ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'],
@@ -379,7 +379,7 @@ $(document).ready(function () {
 					$.ajax({
 						url: '/sections/' + this.sectionId + '/builder/' + id,
 						type: 'DELETE',
-						async: false,
+						async: true,
 						dataType: 'json',
 						data : {
 							_token: $('meta[name="_token"]').attr('content')
@@ -419,16 +419,19 @@ $(document).ready(function () {
 						$.each(row, function (x, cell) {
 							var insertCell = self.activeCell[1] + x;
 
+							// проверяем есть ли новый столбец
+							if (self.names[y] && !self.names[y][x]) { self.addCol(x, e) }
+
 							// if there is no line, then add
 							if (!self.names[insertRow]) { self.addRow(insertRow, e); }
 
 							// if the row and cell exist, then fill it
 							if (self.names[insertRow] && self.names[insertRow][insertCell]) {
-								if (window.sharedData.langs) {
-									$.each(window.sharedData.langs, function (key, lang) {
-										self.names[insertRow][insertCell]['translates'][lang.key] = cell;
-									});
-								}
+								// if (window.sharedData.langs) {
+									// $.each(window.sharedData.langs, function (key, lang) {
+										self.names[insertRow][insertCell]['translates'][self.currentLang] = cell;
+									// });
+								// }
 							}
 						});
 					});
@@ -609,38 +612,51 @@ $(document).ready(function () {
 				});
 			},
 
-            isHide (arr, search) {
-                var index = -1;
+			isHide (arr, search) {
+				var index = -1;
 
-                if (Array.isArray(arr)) {
-                    $.each(arr, function (key, value) {
-                        if (search === value) {
-                            index = key;
-                        }
-                    });
-                }
+				if (Array.isArray(arr)) {
+					$.each(arr, function (key, value) {
+						if (search === value) {
+							index = key;
+						}
+					});
+				}
 
-                return index;
-            },
+				return index;
+			},
 
-            selectHideRowOrCol (row, col, e) {
+			selectHideRowOrCol (row, col, e) {
 				e.preventDefault();
-			    let $array = this.hidenRows;
-			    let searchIndex = row;
+				let $array = this.hidenRows;
+				let searchIndex = row;
 
-			    if (row === false) {
-			        $array = this.hidenCols;
-                    searchIndex = col;
-			    }
+				if (row === false) {
+					$array = this.hidenCols;
+					searchIndex = col;
+				}
 
-                let index = this.isHide($array, searchIndex);
+				let index = this.isHide($array, searchIndex);
 
-                if (index < 0) {
+				if (index < 0) {
 					$array.push(searchIndex);
-                } else {
-                    $array.splice(index, 1);
-                }
-            }
+				} else {
+					$array.splice(index, 1);
+				}
+			},
+
+			clearPaste (event) {
+
+				let paste = (event.clipboardData || window.clipboardData).getData('text');
+				const selection = window.getSelection();
+
+				if (!selection.rangeCount) return false;
+				selection.deleteFromDocument();
+				var rex = /(<([^>]+)>)/ig;
+				paste = paste.replace(rex , "");
+				selection.getRangeAt(0).insertNode(document.createTextNode(paste));
+				event.preventDefault();
+			}
 		},
 
 		mounted: function () {
@@ -673,6 +689,33 @@ $(document).ready(function () {
 					this.initDatepicker();
 				}
 			});
+		}
+	});
+
+	$(window).scroll(function() {
+		var $builderTableHeader = $('#builder-table-header');
+		var $constructorTablePanel = $('#constructor-table-panel');
+
+		if ($(window).scrollTop() > 18) {
+			$builderTableHeader
+				.addClass('is-sticky')
+				.css({
+					top: $(window).scrollTop() - 17 + 'px',
+				});
+
+		} else {
+			$builderTableHeader.removeClass('is-sticky').css({ top: 0 });
+		}
+
+		if ($(window).scrollTop() > 40) {
+			$constructorTablePanel
+				.addClass('is-sticky')
+				.css({
+					top: $(window).scrollTop() - 41 + 'px',
+				});
+
+		} else {
+			$constructorTablePanel.removeClass('is-sticky').css({ top: 0 });
 		}
 	});
 });
